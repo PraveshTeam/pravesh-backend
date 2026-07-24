@@ -1,0 +1,25 @@
+# STS/Eclipse
+.metadata/
+.settings/
+.project
+.classpath
+
+# IntelliJ
+.idea/
+*.iml
+
+# Maven
+target/
+
+# Environment
+.env
+application-secrets.yml
+
+# Node
+node_modules/
+
+# Uploads
+uploads/
+
+# Logs
+*.log

@@ -1,0 +1,26 @@
+package com.pravesh.user.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Table(name = "society_admins")
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor @Builder
+public class SocietyAdmin {
+
+    @Id
+    @Column(name = "user_id")
+    private Long userId;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @MapsId
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @Column(name = "society_id", nullable = false)
+    private Long societyId;
+
+    @Column(length = 50)
+    private String designation;
+}

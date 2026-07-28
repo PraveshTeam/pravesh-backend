@@ -1,5 +1,6 @@
 package com.pravesh.user.entity;
 
+import com.pravesh.user.entity.enums.VerificationStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -18,9 +19,14 @@ public class SocietyAdmin {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(name = "society_id", nullable = false)
-    private Long societyId;
+    @Column(name = "society_id")
+    private Long societyId; // NULL until approved — same pattern as Resident.flatId
 
     @Column(length = 50)
     private String designation;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "verification_status", nullable = false, length = 20)
+    @Builder.Default
+    private VerificationStatus verificationStatus = VerificationStatus.PENDING;
 }

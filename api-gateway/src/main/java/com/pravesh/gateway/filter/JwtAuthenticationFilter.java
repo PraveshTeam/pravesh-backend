@@ -71,6 +71,9 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                     .header("X-Verification-Status",
                             claims.get("verificationStatus") == null
                                     ? "" : String.valueOf(claims.get("verificationStatus")))
+                    .header("X-Society-Id",
+                            claims.get("societyId") == null
+                                    ? "" : String.valueOf(claims.get("societyId")))
                     .build();
 
             return chain.filter(exchange.mutate().request(mutated).build());

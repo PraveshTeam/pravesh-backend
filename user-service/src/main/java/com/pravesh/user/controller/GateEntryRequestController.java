@@ -3,6 +3,7 @@ package com.pravesh.user.controller;
 import com.pravesh.user.dto.request.CreateGateEntryRequest;
 import com.pravesh.user.dto.response.ApiResponse;
 import com.pravesh.user.dto.response.GateEntryRequestResponse;
+import com.pravesh.user.dto.response.ResidentDirectoryEntry;
 import com.pravesh.user.security.AuthenticatedUser;
 import com.pravesh.user.service.GateEntryRequestService;
 import jakarta.validation.Valid;
@@ -58,5 +59,12 @@ public class GateEntryRequestController {
             @AuthenticationPrincipal AuthenticatedUser caller,
             @PathVariable Long id) {
         return ApiResponse.ok("Denied", service.respond(id, caller.userId(), false));
+    }
+    
+    @GetMapping("/residents")
+    @PreAuthorize("hasRole('GUARD')")
+    public ApiResponse<List<ResidentDirectoryEntry>> residents(
+            @AuthenticationPrincipal AuthenticatedUser caller) {
+        return ApiResponse.ok("Residents", service.getSocietyResidents(caller.societyId()));
     }
 }

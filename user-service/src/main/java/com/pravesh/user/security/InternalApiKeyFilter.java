@@ -1,10 +1,5 @@
 package com.pravesh.user.security;
 
-public class InternalApiKeyFilter {
-
-}
-package com.pravesh.user.security;
-
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

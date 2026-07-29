@@ -2,6 +2,7 @@ package com.pravesh.user.service;
 
 import com.pravesh.user.dto.request.CreateGateEntryRequest;
 import com.pravesh.user.dto.response.GateEntryRequestResponse;
+import com.pravesh.user.dto.response.ResidentDirectoryEntry;
 import com.pravesh.user.entity.*;
 import com.pravesh.user.exception.*;
 import com.pravesh.user.feign.NotificationFeignClient;
@@ -125,5 +126,20 @@ public class GateEntryRequestService {
         return new GateEntryRequestResponse(
                 e.getId(), e.getVisitorName(), e.getVisitorPhone(), e.getClaimedFlatNumber(),
                 e.getReason(), e.getStatus(), e.getCreatedAt(), e.getExpiresAt());
+    }
+    
+    public List<ResidentDirectoryEntry> getSocietyResidents(Long societyId) {
+        return flatRepository.findBySocietyId(societyId).stream()
+                .filter(f -> f.getResidentId() != null)
+                .map(f -> {
+                    var user = userRepository.findById(f.getResidentId()).orElse(null);
+                    if (user == null) return null;
+                    return new ResidentDirectoryEntry(
+                            user.getId(), user.getName(), user.getPhone(),
+                            f.getId(), f.getFlatNumber(), f.getTower());
+                })
+                .filter(java.util.Objects::nonNull)
+                .sorted(java.util.Comparator.comparing(ResidentDirectoryEntry::flatNumber))
+                .toList();
     }
 }

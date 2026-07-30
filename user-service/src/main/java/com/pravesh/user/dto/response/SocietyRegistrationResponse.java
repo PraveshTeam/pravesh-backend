@@ -2,13 +2,13 @@ package com.pravesh.user.dto.response;
 
 import java.time.LocalDateTime;
 
-public record OnboardingRequestResponse(
+public record SocietyRegistrationResponse(
         Long id,
-        Long userId,
-        String userName,
-        String claimedFlatNumber,
-        String tower,
-        String documentType,
+        Long adminUserId,
+        String adminName,
+        String societyName,
+        String address,
+        String city,
         String status,
         String adminNotes,
         LocalDateTime createdAt,

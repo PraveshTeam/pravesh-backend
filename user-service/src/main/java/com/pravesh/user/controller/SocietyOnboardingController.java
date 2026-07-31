@@ -52,7 +52,14 @@ public class SocietyOnboardingController {
 	public ResponseEntity<Resource> downloadDocument(@AuthenticationPrincipal AuthenticatedUser caller,
 			@PathVariable Long id) {
 		Resource resource = onboardingService.getDocumentForDownload(id, caller.userId(), caller.role());
-		return ResponseEntity.ok().contentType(MediaType.APPLICATION_OCTET_STREAM).body(resource);
+
+		String filename = resource.getFilename() != null ? resource.getFilename() : "document";
+		MediaType contentType = com.pravesh.user.util.FileTypeUtil.detect(filename);
+
+		return ResponseEntity.ok().contentType(contentType)
+				.header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+						"attachment; filename=\"" + filename + "\"")
+				.body(resource);
 	}
 
 	@PutMapping("/api/superadmin/society-requests/{id}/approve")

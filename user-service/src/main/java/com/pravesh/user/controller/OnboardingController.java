@@ -42,43 +42,43 @@ public class OnboardingController {
 	}
 
 	@GetMapping("/api/admin/onboarding/requests")
-    @PreAuthorize("hasRole('SOCIETY_ADMIN')")
-    public ApiResponse<List<OnboardingRequestResponse>> listRequests(
-            @AuthenticationPrincipal AuthenticatedUser caller,
-            @RequestParam(defaultValue = "PENDING") String status) {
-        var results = onboardingService.listByStatus(
-                com.pravesh.user.entity.enums.RequestStatus.valueOf(status.toUpperCase()),
-                caller.societyId());
-        return ApiResponse.ok("Onboarding requests", results);
-    }
+	@PreAuthorize("hasRole('SOCIETY_ADMIN')")
+	public ApiResponse<List<OnboardingRequestResponse>> listRequests(@AuthenticationPrincipal AuthenticatedUser caller,
+			@RequestParam(defaultValue = "PENDING") String status) {
+		var results = onboardingService.listByStatus(
+				com.pravesh.user.entity.enums.RequestStatus.valueOf(status.toUpperCase()), caller.societyId());
+		return ApiResponse.ok("Onboarding requests", results);
+	}
 
 	@GetMapping("/api/admin/onboarding/requests/{id}/document")
 	@PreAuthorize("hasAnyRole('SOCIETY_ADMIN', 'RESIDENT')")
 	public ResponseEntity<Resource> downloadDocument(@AuthenticationPrincipal AuthenticatedUser caller,
 			@PathVariable Long id) {
 
-		Resource resource = onboardingService.getDocumentForDownload(
-                id, caller.userId(), caller.role(), caller.societyId());
+		Resource resource = onboardingService.getDocumentForDownload(id, caller.userId(), caller.role(),
+				caller.societyId());
 
-		return ResponseEntity.ok().contentType(MediaType.APPLICATION_OCTET_STREAM).body(resource);
+		String filename = resource.getFilename() != null ? resource.getFilename() : "document";
+		MediaType contentType = com.pravesh.user.util.FileTypeUtil.detect(filename);
+
+		return ResponseEntity.ok().contentType(contentType)
+				.header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+						"attachment; filename=\"" + filename + "\"")
+				.body(resource);
 	}
 
 	@PutMapping("/api/admin/onboarding/requests/{id}/approve")
-    @PreAuthorize("hasRole('SOCIETY_ADMIN')")
-    public ApiResponse<OnboardingRequestResponse> approve(
-            @AuthenticationPrincipal AuthenticatedUser caller,
-            @PathVariable Long id) {
-        return ApiResponse.ok("Request approved",
-                onboardingService.approve(id, caller.userId(), caller.societyId()));
-    }
+	@PreAuthorize("hasRole('SOCIETY_ADMIN')")
+	public ApiResponse<OnboardingRequestResponse> approve(@AuthenticationPrincipal AuthenticatedUser caller,
+			@PathVariable Long id) {
+		return ApiResponse.ok("Request approved", onboardingService.approve(id, caller.userId(), caller.societyId()));
+	}
 
-    @PutMapping("/api/admin/onboarding/requests/{id}/reject")
-    @PreAuthorize("hasRole('SOCIETY_ADMIN')")
-    public ApiResponse<OnboardingRequestResponse> reject(
-            @AuthenticationPrincipal AuthenticatedUser caller,
-            @PathVariable Long id,
-            @RequestBody ApproveRejectRequest req) {
-        return ApiResponse.ok("Request rejected",
-                onboardingService.reject(id, caller.userId(), req.reason(), caller.societyId()));
-    }
+	@PutMapping("/api/admin/onboarding/requests/{id}/reject")
+	@PreAuthorize("hasRole('SOCIETY_ADMIN')")
+	public ApiResponse<OnboardingRequestResponse> reject(@AuthenticationPrincipal AuthenticatedUser caller,
+			@PathVariable Long id, @RequestBody ApproveRejectRequest req) {
+		return ApiResponse.ok("Request rejected",
+				onboardingService.reject(id, caller.userId(), req.reason(), caller.societyId()));
+	}
 }

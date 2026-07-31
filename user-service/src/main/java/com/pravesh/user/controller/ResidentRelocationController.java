@@ -74,4 +74,23 @@ public class ResidentRelocationController {
         service.revoke(id, caller.userId());
         return ApiResponse.ok("Request revoked");
     }
+    
+    @GetMapping("/api/admin/relocation-requests/{id}/document")
+    @PreAuthorize("hasAnyRole('SOCIETY_ADMIN', 'RESIDENT')")
+    public org.springframework.http.ResponseEntity<org.springframework.core.io.Resource> downloadDocument(
+            @AuthenticationPrincipal AuthenticatedUser caller,
+            @PathVariable Long id) {
+
+        org.springframework.core.io.Resource resource = service.getDocumentForDownload(
+                id, caller.userId(), caller.role(), caller.societyId());
+
+        String filename = resource.getFilename() != null ? resource.getFilename() : "document";
+        org.springframework.http.MediaType contentType = com.pravesh.user.util.FileTypeUtil.detect(filename);
+
+        return org.springframework.http.ResponseEntity.ok()
+                .contentType(contentType)
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + "\"")
+                .body(resource);
+    }
 }

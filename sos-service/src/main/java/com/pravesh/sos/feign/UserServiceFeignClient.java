@@ -12,4 +12,15 @@ public interface UserServiceFeignClient {
     ResidentContextResponse getResidentContext(
             @PathVariable Long userId,
             @RequestHeader("X-Internal-Api-Key") String apiKey);
+
+    // Added for SOS status history: resolves a GUARD or SOCIETY_ADMIN's name
+    // when they acknowledge/progress/resolve an alert -- getResidentContext
+    // above only works for residents (backed by the Resident entity), so a
+    // guard/admin acting on an alert needs this generic contact lookup instead.
+    // Confirmed WRAPPED in {success,message,data}, same as payment-service/
+    // forum-service's use of this same endpoint.
+    @GetMapping("/api/internal/users/{userId}/contact")
+    ApiResponseWrapper<UserContactResponse> getContact(
+            @PathVariable Long userId,
+            @RequestHeader("X-Internal-Api-Key") String apiKey);
 }

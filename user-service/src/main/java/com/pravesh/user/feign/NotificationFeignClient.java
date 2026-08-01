@@ -15,13 +15,4 @@ public interface NotificationFeignClient {
 	
 	@PostMapping("/api/internal/notify/guard-credentials")
     void notifyGuardCredentials(@RequestBody GuardCredentialsRequest request);
-	
-	@PostMapping("/api/internal/notify/gate-entry-request")
-    void notifyGateEntryRequest(@RequestBody GateEntryNotifyRequest request);
-	
-	@PostMapping("/api/internal/notify/flat-displacement")
-    void notifyFlatDisplacement(@RequestBody DisplacementNotifyRequest request);
-	
-	@PostMapping("/api/internal/notify/relocation-approved")
-    void notifyRelocationApproved(@RequestBody RelocationApprovedRequest request);
 }

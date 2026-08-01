@@ -19,6 +19,13 @@ public class PaymentOrder {
     @Column(name = "resident_id", nullable = false)
     private Long residentId;
 
+    // CRITICAL for multi-tenancy: without this, an admin's "all payments" view
+    // has no way to be scoped to their own society, and leaks every society's
+    // payment records to every admin. Set once, at order-creation time, from
+    // the resident's own JWT societyId claim -- never trust a client-supplied value.
+    @Column(name = "society_id", nullable = false)
+    private Long societyId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private PaymentPurpose purpose;

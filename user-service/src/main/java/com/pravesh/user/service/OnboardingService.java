@@ -6,6 +6,7 @@ import com.pravesh.user.entity.enums.DocumentType;
 import com.pravesh.user.entity.enums.RequestStatus;
 import com.pravesh.user.entity.enums.VerificationStatus;
 import com.pravesh.user.exception.*;
+import com.pravesh.user.feign.DisplacementNotifyRequest;
 import com.pravesh.user.feign.NotificationFeignClient;
 import com.pravesh.user.feign.ResidentApprovedRequest;
 import com.pravesh.user.repository.*;
@@ -103,8 +104,21 @@ public class OnboardingService {
         return resource;
     }
 
+    /**
+     * `force` mirrors ResidentRelocationService.approve()'s exact pattern:
+     * without it, an occupied flat throws FlatOccupiedException (409, with
+     * enough detail for the admin to see who's currently there) instead of
+     * the old blunt DuplicateResourceException dead-end. With force=true,
+     * the current occupant is displaced (flatId cleared, verificationStatus
+     * reset to PENDING -- same consequence, same notification path, as a
+     * relocation-caused displacement) and the new resident takes the flat.
+     *
+     * This does NOT touch ResidentRelocationService or its swap/race-condition
+     * logic at all -- it brings onboarding's conflict handling up to the same
+     * standard that flow already had, nothing more.
+     */
     @Transactional
-    public OnboardingRequestResponse approve(Long requestId, Long reviewerId, Long callerSocietyId) {
+    public OnboardingRequestResponse approve(Long requestId, Long reviewerId, Long callerSocietyId, boolean force) {
         FlatAccessRequest request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Onboarding request not found"));
 
@@ -131,9 +145,41 @@ public class OnboardingService {
             flat = flatRepository.save(flat);
         }
 
-        if (flat.getResidentId() != null) {
-            throw new DuplicateResourceException(
-                    "Flat " + flat.getFlatNumber() + " already has a resident assigned");
+        boolean occupiedByOther = flat.getResidentId() != null
+                && !flat.getResidentId().equals(request.getUserId());
+
+        if (occupiedByOther && !force) {
+            String occupantName = userRepository.findById(flat.getResidentId())
+                    .map(User::getName)
+                    .orElse("Unknown resident");
+            throw new FlatOccupiedException(
+                    "Flat " + flat.getFlatNumber() + " is already occupied by " + occupantName,
+                    flat.getResidentId(), occupantName, flat.getFlatNumber());
+        }
+
+        String displacedNote = null;
+        if (occupiedByOther) {
+            Resident displaced = residentRepository.findById(flat.getResidentId()).orElse(null);
+            if (displaced != null) {
+                User displacedUser = userRepository.findById(displaced.getUserId()).orElse(null);
+                String displacedName = displacedUser != null ? displacedUser.getName()
+                        : "resident #" + displaced.getUserId();
+
+                displaced.setFlatId(null);
+                displaced.setVerificationStatus(VerificationStatus.PENDING);
+                residentRepository.save(displaced);
+                displacedNote = "Displaced " + displacedName + " from flat " + flat.getFlatNumber()
+                        + " on admin override during onboarding approval.";
+
+                if (displacedUser != null) {
+                    try {
+                        notificationFeignClient.notifyFlatDisplacement(new DisplacementNotifyRequest(
+                                displacedUser.getId(), displacedUser.getPhone(), flat.getFlatNumber()));
+                    } catch (Exception e) {
+                        log.warn("Failed to notify displaced resident {}: {}", displacedUser.getId(), e.getMessage());
+                    }
+                }
+            }
         }
 
         Resident resident = residentRepository.findById(request.getUserId())
@@ -150,6 +196,9 @@ public class OnboardingService {
         request.setStatus(RequestStatus.APPROVED);
         request.setReviewedBy(reviewerId);
         request.setReviewedAt(LocalDateTime.now());
+        if (displacedNote != null) {
+            request.setAdminNotes(displacedNote);
+        }
         request = requestRepository.save(request);
 
         try {

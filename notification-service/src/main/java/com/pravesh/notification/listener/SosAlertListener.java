@@ -12,6 +12,8 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+
 @Component
 @RequiredArgsConstructor
 public class SosAlertListener {
@@ -25,31 +27,12 @@ public class SosAlertListener {
     @RabbitListener(queues = "pravesh.sos.queue")
     public void handleSosAlert(String rawPayload) {
         try {
-            JsonNode node = mapper.readTree(rawPayload);
-            String eventType = node.path("eventType").asText("");
-            Long societyId = node.path("societyId").asLong();
-            long residentUserId = node.path("residentUserId").asLong(0);
+        	JsonNode node = mapper.readTree(rawPayload);
+        	String eventType = node.path("eventType").asText("");
+        	Long societyId = node.path("societyId").asLong();
 
-            // Existing: guard/admin live banner, scoped to the whole society.
-            log.info("Pushing SOS to /topic/sos/{}", societyId);
-            messagingTemplate.convertAndSend("/topic/sos/" + societyId, rawPayload);
-
-            // NEW: the raising resident's own private live-status topic. Same
-            // payload, different destination -- the resident's frontend only
-            // ever subscribes to their OWN userId's topic, so they see their
-            // own alert's status change in real time without being able to see
-            // (or being shown) every other alert in the society, unlike guards/admins.
-            //
-            // NOTE: this topic is protected only by the resident needing to know
-            // their own userId (which they obviously do) -- the /ws handshake
-            // itself is unauthenticated by design (same as the existing
-            // /topic/sos/{societyId} banner), so this is "obscurity", not real
-            // per-topic authorization. Consistent with the rest of this app's
-            // WebSocket layer; flagged here so it's not a silent gap.
-            if (residentUserId > 0) {
-                log.info("Pushing SOS status to /topic/sos-status/{}", residentUserId);
-                messagingTemplate.convertAndSend("/topic/sos-status/" + residentUserId, rawPayload);
-            }
+        	log.info("Pushing SOS to /topic/sos/{}", societyId);
+        	messagingTemplate.convertAndSend("/topic/sos/" + societyId, rawPayload);
 
             if (!"SOS_RAISED".equals(eventType)) {
                 return; // status updates don't need a fresh SMS dispatch

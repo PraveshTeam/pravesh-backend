@@ -67,11 +67,15 @@ public class OnboardingController {
 				.body(resource);
 	}
 
+	// force defaults to false -- a normal approve() call from the UI never
+	// sends it, so nothing changes for the happy path. Only the "Reassign
+	// Anyway" confirm button in the conflict modal sends force=true.
 	@PutMapping("/api/admin/onboarding/requests/{id}/approve")
 	@PreAuthorize("hasRole('SOCIETY_ADMIN')")
 	public ApiResponse<OnboardingRequestResponse> approve(@AuthenticationPrincipal AuthenticatedUser caller,
-			@PathVariable Long id) {
-		return ApiResponse.ok("Request approved", onboardingService.approve(id, caller.userId(), caller.societyId()));
+			@PathVariable Long id, @RequestParam(defaultValue = "false") boolean force) {
+		return ApiResponse.ok("Request approved",
+				onboardingService.approve(id, caller.userId(), caller.societyId(), force));
 	}
 
 	@PutMapping("/api/admin/onboarding/requests/{id}/reject")

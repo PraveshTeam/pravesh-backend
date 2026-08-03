@@ -6,9 +6,14 @@ import com.pravesh.payment.entity.PaymentStatus;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-// Returned for GET history / admin listing endpoints.
+// residentName/flatNumber are only populated for the admin listing (enriched
+// via a Feign call to user-service); a resident's own history endpoint doesn't
+// need them -- they already know it's their own payment -- so they'll be null there.
 public record PaymentOrderResponse(
         Long id,
+        Long residentId,
+        String residentName,
+        String flatNumber,
         PaymentPurpose purpose,
         Long referenceId,
         BigDecimal amount,

@@ -3,24 +3,27 @@ package com.pravesh.sos.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pravesh.sos.dto.request.CreateSosRequest;
 import com.pravesh.sos.dto.response.SosAlertResponse;
+import com.pravesh.sos.dto.response.SosStatusHistoryResponse;
 import com.pravesh.sos.entity.*;
 import com.pravesh.sos.exception.InvalidStateException;
 import com.pravesh.sos.exception.ResourceNotFoundException;
 import com.pravesh.sos.feign.ResidentContextResponse;
+import com.pravesh.sos.feign.UserContactResponse;
 import com.pravesh.sos.feign.UserServiceFeignClient;
 import com.pravesh.sos.repository.OutboxEventRepository;
 import com.pravesh.sos.repository.SosAlertRepository;
+import com.pravesh.sos.repository.SosStatusHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.AccessDeniedException;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +32,7 @@ public class SosService {
     private static final Logger log = LoggerFactory.getLogger(SosService.class);
 
     private final SosAlertRepository alertRepository;
+    private final SosStatusHistoryRepository historyRepository;
     private final OutboxEventRepository outboxRepository;
     private final UserServiceFeignClient userServiceFeignClient;
     private final ObjectMapper mapper = new ObjectMapper();
@@ -52,6 +56,9 @@ public class SosService {
                 .build();
         alert = alertRepository.save(alert);
 
+        // First history row: the raise itself, "changed by" the resident who raised it.
+        recordHistory(alert.getId(), SosStatus.ACTIVE, residentUserId);
+
         writeOutboxEvent("SOS_RAISED", alert, ctx.name(), ctx.phone(), ctx.flatNumber());
 
         return toResponse(alert, ctx);
@@ -61,6 +68,28 @@ public class SosService {
         return alertRepository.findBySocietyIdAndStatusNotOrderByCreatedAtDesc(societyId, SosStatus.RESOLVED)
                 .stream()
                 .map(a -> toResponse(a, userServiceFeignClient.getResidentContext(a.getResidentUserId(), internalApiKey)))
+                .toList();
+    }
+
+    // New: the full incident log for a society -- ACTIVE, ACKNOWLEDGED,
+    // HELP_ON_THE_WAY, and RESOLVED alerts alike, most recent first. This is
+    // what powers the admin's SOS Incident Log screen, separate from the
+    // live-banner view (which only ever shows unresolved alerts).
+    public List<SosAlertResponse> getIncidentLog(Long societyId) {
+        return alertRepository.findBySocietyIdOrderByCreatedAtDesc(societyId)
+                .stream()
+                .map(a -> toResponse(a, userServiceFeignClient.getResidentContext(a.getResidentUserId(), internalApiKey)))
+                .toList();
+    }
+
+    // New: lets a resident see their OWN alerts (any status, most recent first) --
+    // this is what powers the resident-facing live-status view. Reuses the
+    // repository method that already existed but was never wired to an endpoint.
+    public List<SosAlertResponse> getMyAlerts(Long residentUserId) {
+        ResidentContextResponse ctx = userServiceFeignClient.getResidentContext(residentUserId, internalApiKey);
+        return alertRepository.findByResidentUserIdOrderByCreatedAtDesc(residentUserId)
+                .stream()
+                .map(a -> toResponse(a, ctx))
                 .toList();
     }
 
@@ -81,6 +110,10 @@ public class SosService {
         }
         alertRepository.save(alert);
 
+        // Record WHO made THIS transition, for every step -- not just the one
+        // acknowledged_by column used to capture. This is the real audit trail.
+        recordHistory(alert.getId(), target, callerId);
+
         ResidentContextResponse ctx = userServiceFeignClient.getResidentContext(alert.getResidentUserId(), internalApiKey);
         writeOutboxEvent("SOS_STATUS_UPDATED", alert, ctx != null ? ctx.name() : "Unknown", null,
                 ctx != null ? ctx.flatNumber() : null);
@@ -88,18 +121,67 @@ public class SosService {
         return toResponse(alert, ctx);
     }
 
+    // New: full timeline for one alert. Access restricted to GUARD/SOCIETY_ADMIN
+    // of the SAME society as the alert, or the resident who raised it -- nobody
+    // else (learned from the earlier cross-society leaks: check the actual
+    // relationship, don't just trust "any authenticated user").
+    public List<SosStatusHistoryResponse> getHistory(Long alertId, Long callerId, String callerRole, Long callerSocietyId) {
+        SosAlert alert = alertRepository.findById(alertId)
+                .orElseThrow(() -> new ResourceNotFoundException("Alert not found"));
+
+        boolean isOwner = alert.getResidentUserId().equals(callerId);
+        boolean isSameSocietyResponder = ("GUARD".equals(callerRole) || "SOCIETY_ADMIN".equals(callerRole))
+                && alert.getSocietyId().equals(callerSocietyId);
+
+        if (!isOwner && !isSameSocietyResponder) {
+            throw new AccessDeniedException("You don't have access to this alert's history");
+        }
+
+        return historyRepository.findBySosAlertIdOrderByChangedAtAsc(alertId).stream()
+                .map(this::toHistoryResponse)
+                .toList();
+    }
+
+    private void recordHistory(Long alertId, SosStatus status, Long changedByUserId) {
+        historyRepository.save(SosStatusHistory.builder()
+                .sosAlertId(alertId)
+                .status(status)
+                .changedByUserId(changedByUserId)
+                .build());
+    }
+
+    private SosStatusHistoryResponse toHistoryResponse(SosStatusHistory h) {
+        String actorName = resolveActorName(h.getChangedByUserId());
+        return new SosStatusHistoryResponse(h.getStatus(), h.getChangedByUserId(), actorName, h.getChangedAt());
+    }
+
+    // The actor could be a RESIDENT (the initial raise) or a GUARD/SOCIETY_ADMIN
+    // (every subsequent transition) -- try the resident-specific lookup first,
+    // fall back to the generic contact lookup, and never let a name-resolution
+    // failure break the whole history list.
+    private String resolveActorName(Long userId) {
+        try {
+            ResidentContextResponse ctx = userServiceFeignClient.getResidentContext(userId, internalApiKey);
+            if (ctx != null && ctx.name() != null) return ctx.name();
+        } catch (Exception ignored) {
+            // not a resident -- fall through to the generic lookup below
+        }
+        try {
+            UserContactResponse contact = userServiceFeignClient.getContact(userId, internalApiKey).data();
+            if (contact != null) return contact.name();
+        } catch (Exception e) {
+            log.warn("Could not resolve name for user {} in SOS history: {}", userId, e.getMessage());
+        }
+        return null;
+    }
+
     private void writeOutboxEvent(String eventType, SosAlert alert, String residentName, String residentPhone,
                                    String flatNumber) {
-        // The outbox is now the ONLY real-time path — sos-service has no
-        // reachable WebSocket broker of its own (the frontend connects through
-        // the Gateway to notification-service's broker instead). Every alert
-        // and status change goes through here, gets picked up by the poller,
-        // published to RabbitMQ, and notification-service both SMSes (on raise)
-        // and pushes the live WebSocket update.
         try {
             var payload = new java.util.HashMap<String, Object>();
             payload.put("eventType", eventType);
             payload.put("id", alert.getId());
+            payload.put("residentUserId", alert.getResidentUserId()); // NEW: lets notification-service target the raiser's own live-status topic
             payload.put("residentName", residentName);
             payload.put("residentPhone", residentPhone);
             payload.put("flatNumber", flatNumber);
@@ -109,7 +191,7 @@ public class SosService {
             payload.put("societyId", alert.getSocietyId());
 
             String json = mapper.writeValueAsString(payload);
-            outboxRepository.save(OutboxEvent.builder()
+            outboxRepository.save(com.pravesh.sos.entity.OutboxEvent.builder()
                     .aggregateId(alert.getId())
                     .eventType(eventType)
                     .payload(json)

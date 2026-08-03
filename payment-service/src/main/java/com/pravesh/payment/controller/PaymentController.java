@@ -26,7 +26,11 @@ public class PaymentController {
     public ApiResponse<CheckoutConfigResponse> createOrder(
             @AuthenticationPrincipal AuthenticatedUser caller,
             @Valid @RequestBody CreatePaymentOrderRequest req) {
-        return ApiResponse.ok("Order created", paymentService.createOrder(req, caller.userId()));
+        // societyId comes from the caller's own JWT claim (via the gateway's
+        // X-Society-Id header) -- never from the request body, so a resident
+        // can't spoof which society their payment gets tagged under.
+        return ApiResponse.ok("Order created",
+                paymentService.createOrder(req, caller.userId(), caller.societyId()));
     }
 
     @GetMapping("/history")
@@ -38,8 +42,13 @@ public class PaymentController {
     @GetMapping("/admin/payments")
     @PreAuthorize("hasRole('SOCIETY_ADMIN')")
     public ApiResponse<List<PaymentOrderResponse>> allPayments(
+            @AuthenticationPrincipal AuthenticatedUser caller,
             @RequestParam(required = false) String purpose,
             @RequestParam(required = false) String status) {
-        return ApiResponse.ok("All payments", paymentService.allPayments(purpose, status));
+        // Scoped to the admin's OWN society -- this is the fix for the
+        // cross-society data leak. caller.societyId() comes from the JWT,
+        // an admin cannot pass a different society's ID to see its payments.
+        return ApiResponse.ok("All payments",
+                paymentService.allPayments(purpose, status, caller.societyId()));
     }
 }

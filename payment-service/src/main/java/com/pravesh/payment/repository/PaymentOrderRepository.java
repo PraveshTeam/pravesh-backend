@@ -16,5 +16,7 @@ public interface PaymentOrderRepository extends JpaRepository<PaymentOrder, Long
 
     List<PaymentOrder> findByPurposeAndStatusOrderByCreatedAtDesc(PaymentPurpose purpose, PaymentStatus status);
 
-    List<PaymentOrder> findAllByOrderByCreatedAtDesc();
+    // Scoped to the admin's own society -- this is what fixes the cross-society
+    // data leak (an admin from one society was able to see every society's payments).
+    List<PaymentOrder> findBySocietyIdOrderByCreatedAtDesc(Long societyId);
 }

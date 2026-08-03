@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -168,8 +169,20 @@ public class PassService {
 			return PassValidationResponse.denied("ALREADY_USED");
 		}
 
-		if (pass.getPassType() == PassType.ONE_TIME || pass.getPassType() == PassType.RECURRING_DAILY) {
+		if (pass.getPassType() == PassType.ONE_TIME) {
 			pass.setStatus(PassStatus.CONSUMED);
+
+		} else if (pass.getPassType() == PassType.RECURRING_DAILY) {
+			// One entry per calendar day. The pass stays ACTIVE (and keeps the same
+			// UUID) for its whole validity window — we only track which day it was
+			// last used. Date comparison is stateless, so nothing breaks if the
+			// service is down at midnight.
+			LocalDate today = LocalDate.now();
+			if (today.equals(pass.getLastUsedDate())) {
+				return PassValidationResponse.denied("ALREADY_USED_TODAY");
+			}
+			pass.setLastUsedDate(today);
+
 		} else if (pass.getPassType() == PassType.MULTI_USE) {
 			pass.setUsesRemaining(pass.getUsesRemaining() - 1);
 			if (pass.getUsesRemaining() <= 0) {
@@ -177,7 +190,6 @@ public class PassService {
 			}
 		}
 		passRepository.save(pass);
-
 		return PassValidationResponse.granted(pass.getId(), pass.getResidentId(), pass.getVisitorName(),
 				pass.getPassType().name());
 	}

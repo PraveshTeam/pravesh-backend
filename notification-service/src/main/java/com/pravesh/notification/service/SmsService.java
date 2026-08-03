@@ -1,5 +1,6 @@
 package com.pravesh.notification.service;
 
+import com.pravesh.notification.dto.request.DisplacementNotifyRequest;
 import com.pravesh.notification.dto.request.GateEntryNotifyRequest;
 import com.twilio.Twilio;
 import com.twilio.rest.api.v2010.account.Message;
@@ -50,6 +51,17 @@ public class SmsService {
             sendSms(req.residentPhone(), smsBody);
         } catch (Exception e) {
             log.warn("Failed to send gate-entry SMS to {}: {}", req.residentPhone(), e.getMessage());
+        }
+    }
+    
+    public void handleFlatDisplacement(DisplacementNotifyRequest req) {
+        String smsBody = "Pravesh: You have been removed from flat " + req.oldFlatNumber()
+                + " by your society admin. Please submit a new onboarding request if this was made in error, "
+                + "or to claim a different flat.";
+        try {
+            sendSms(req.residentPhone(), smsBody);
+        } catch (Exception e) {
+            log.warn("Failed to send displacement SMS to {}: {}", req.residentPhone(), e.getMessage());
         }
     }
 }

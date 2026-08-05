@@ -4,6 +4,7 @@ import com.pravesh.user.dto.request.*;
 import com.pravesh.user.dto.response.ApiResponse;
 import com.pravesh.user.dto.response.AuthResponse;
 import com.pravesh.user.service.AuthService;
+import com.pravesh.user.service.RegistrationVerificationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -16,11 +17,28 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final RegistrationVerificationService registrationVerificationService;
 
     @PostMapping("/register")
     public ApiResponse<AuthResponse> register(@Valid @RequestBody RegisterRequest req) {
         return ApiResponse.ok("Registration successful. Please complete onboarding.",
                 authService.register(req));
+    }
+
+    // ── Email/Phone verification during registration (reuses the forgot-password OTP flow) ──
+
+    @PostMapping("/register/send-otp")
+    public ApiResponse<Void> sendRegistrationOtp(@Valid @RequestBody SendRegistrationOtpRequest req) {
+        registrationVerificationService.sendOtp(req);
+        String channel = "EMAIL".equalsIgnoreCase(req.contactType()) ? "email" : "phone";
+        return ApiResponse.ok("OTP sent to your " + channel + ".");
+    }
+
+    @PostMapping("/register/verify-otp")
+    public ApiResponse<Void> verifyRegistrationOtp(@Valid @RequestBody VerifyRegistrationOtpRequest req) {
+        registrationVerificationService.verifyOtp(req);
+        String channel = "EMAIL".equalsIgnoreCase(req.contactType()) ? "Email" : "Phone";
+        return ApiResponse.ok(channel + " verified successfully.");
     }
 
     @PostMapping("/login")

@@ -35,6 +35,7 @@ public class AuthService {
     private final GateRepository gateRepository;
     private final GuardRepository guardRepository;
     private final FlatRepository flatRepository;
+    private final RegistrationVerificationRepository registrationVerificationRepository;
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -54,6 +55,19 @@ public class AuthService {
         if (userRepository.existsByPhone(req.phone())) {
             throw new DuplicateResourceException("Phone number already registered");
         }
+
+        // Both contacts must have been OTP-verified via /api/auth/register/send-otp
+        // + /api/auth/register/verify-otp before an account can actually be created.
+        RegistrationVerification emailVerification = registrationVerificationRepository
+                .findTopByContactTypeAndContactValueAndVerifiedTrueAndConsumedFalseOrderByCreatedAtDesc(
+                        "EMAIL", req.email())
+                .orElseThrow(() -> new InvalidStateException(
+                        "Please verify your email before registering."));
+        RegistrationVerification phoneVerification = registrationVerificationRepository
+                .findTopByContactTypeAndContactValueAndVerifiedTrueAndConsumedFalseOrderByCreatedAtDesc(
+                        "PHONE", req.phone())
+                .orElseThrow(() -> new InvalidStateException(
+                        "Please verify your phone number before registering."));
 
         Role role = Role.valueOf(requestedRole);
 
@@ -87,6 +101,11 @@ public class AuthService {
             societyAdminRepository.save(admin);
             verificationStatus = admin.getVerificationStatus().name();
         }
+
+        emailVerification.setConsumed(true);
+        phoneVerification.setConsumed(true);
+        registrationVerificationRepository.save(emailVerification);
+        registrationVerificationRepository.save(phoneVerification);
 
         String token = jwtUtil.generateToken(user, verificationStatus, null);
 
@@ -166,7 +185,8 @@ public class AuthService {
                 "email", user.getEmail(),
                 "phone", user.getPhone(),
                 "otp", otp,
-                "channel", channel
+                "channel", channel,
+                "purpose", "PASSWORD_RESET"
         );
 
         String payloadJson;

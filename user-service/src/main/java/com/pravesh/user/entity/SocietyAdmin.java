@@ -20,7 +20,7 @@ public class SocietyAdmin {
     private User user;
 
     @Column(name = "society_id")
-    private Long societyId; // NULL until approved — same pattern as Resident.flatId
+    private Long societyId; 
 
     @Column(length = 50)
     private String designation;

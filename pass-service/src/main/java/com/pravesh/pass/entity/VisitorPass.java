@@ -5,6 +5,7 @@ import com.pravesh.pass.entity.enums.PassType;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -58,6 +59,9 @@ public class VisitorPass {
     
     @Column(name = "society_id", nullable = false)
     private Long societyId;
+    
+    @Column(name = "last_used_date")
+    private LocalDate lastUsedDate;
 
     @PrePersist
     protected void onCreate() {

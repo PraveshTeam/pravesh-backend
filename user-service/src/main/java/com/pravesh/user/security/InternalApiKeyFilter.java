@@ -24,8 +24,11 @@ public class InternalApiKeyFilter extends OncePerRequestFilter {
             FilterChain filterChain) throws ServletException, IOException {
 
         String path = request.getRequestURI();
+        
         if (path.startsWith("/api/internal/")) {
-            String providedKey = request.getHeader("X-Internal-Api-Key");
+        	String providedKey = request.getHeader("X-Internal-Api-Key");
+        	System.out.println(">>> DEBUG providedKey = [" + providedKey + "] length=" + 
+        	    (providedKey == null ? "null" : providedKey.length()));
             if (providedKey == null || !providedKey.equals(expectedKey)) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.setContentType("application/json");

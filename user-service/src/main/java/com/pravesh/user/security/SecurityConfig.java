@@ -20,6 +20,9 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        System.out.println(">>> DEBUG internalApiKey = [" + internalApiKey + "] length=" + 
+            (internalApiKey == null ? "null" : internalApiKey.length()));
+
         http
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

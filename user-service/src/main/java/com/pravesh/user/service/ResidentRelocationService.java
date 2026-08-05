@@ -19,12 +19,15 @@ import java.nio.file.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Service
 @RequiredArgsConstructor
 public class ResidentRelocationService {
+
+	private static final Pattern FLAT_NUMBER_PATTERN = Pattern.compile("^[A-Z]-\\d{1,5}$");
 
 	private final ResidentRelocationRequestRepository requestRepository;
 	private final ResidentRelocationHistoryRepository historyRepository;
@@ -45,6 +48,11 @@ public class ResidentRelocationService {
 		requestRepository.findByResidentUserIdAndStatus(residentUserId, RequestStatus.PENDING).ifPresent(r -> {
 			throw new InvalidStateException("You already have a pending relocation request");
 		});
+
+		if (req.claimedFlatNumber() == null || !FLAT_NUMBER_PATTERN.matcher(req.claimedFlatNumber()).matches()) {
+			throw new InvalidStateException(
+					"Flat number must look like A-101 (one capital letter, a hyphen, then up to 5 digits)");
+		}
 
 		Resident resident = residentRepository.findById(residentUserId)
 				.orElseThrow(() -> new ResourceNotFoundException("Resident not found"));

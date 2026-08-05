@@ -22,12 +22,14 @@ import org.springframework.web.multipart.MultipartFile;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class OnboardingService {
 
     private static final Logger log = LoggerFactory.getLogger(OnboardingService.class);
+    private static final Pattern FLAT_NUMBER_PATTERN = Pattern.compile("^[A-Z]-\\d{1,5}$");
 
     private final FlatAccessRequestRepository requestRepository;
     private final ResidentRepository residentRepository;
@@ -52,6 +54,10 @@ public class OnboardingService {
         if (requestRepository.existsByUserIdAndStatus(userId, RequestStatus.PENDING)) {
             throw new DuplicateResourceException(
                     "You already have a pending onboarding request");
+        }
+        if (claimedFlatNumber == null || !FLAT_NUMBER_PATTERN.matcher(claimedFlatNumber).matches()) {
+            throw new InvalidStateException(
+                    "Flat number must look like A-101 (one capital letter, a hyphen, then up to 5 digits)");
         }
 
         String path = documentStorageService.store(userId, file);

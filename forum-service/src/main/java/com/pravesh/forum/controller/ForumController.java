@@ -58,4 +58,13 @@ public class ForumController {
         forumService.togglePin(id, caller.societyId());
         return ApiResponse.ok("Pin status toggled");
     }
+    
+    @DeleteMapping("/posts/{id}")
+    public ApiResponse<Void> deletePost(
+            @AuthenticationPrincipal AuthenticatedUser caller,
+            @PathVariable Long id) {
+        forumService.softDelete(id, caller.societyId());
+        return ApiResponse.ok("Post removed");
+    }
+}
     }

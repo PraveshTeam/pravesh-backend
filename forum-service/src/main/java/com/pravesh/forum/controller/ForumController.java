@@ -60,6 +60,7 @@ public class ForumController {
     }
     
     @DeleteMapping("/posts/{id}")
+    @PreAuthorize("hasRole('SOCIETY_ADMIN')")
     public ApiResponse<Void> deletePost(
             @AuthenticationPrincipal AuthenticatedUser caller,
             @PathVariable Long id) {

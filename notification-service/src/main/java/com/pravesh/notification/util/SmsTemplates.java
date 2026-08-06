@@ -6,6 +6,13 @@ public class SmsTemplates {
         return "Pravesh: Your password reset code is " + otp + ". Valid for 10 min. Do not share this code.";
     }
 
+<<<<<<< Updated upstream
+=======
+    public static String registrationOtp(String otp) {
+        return "Pravesh: Your verification code is " + otp + ". Valid for 10 min. Do not share this code.";
+    }
+
+>>>>>>> Stashed changes
     public static String passCreated(String visitorName, String validFrom, String validUntil) {
         return "Pravesh: Pass created for " + visitorName + ". Valid " + validFrom + " to " + validUntil + ".";
     }

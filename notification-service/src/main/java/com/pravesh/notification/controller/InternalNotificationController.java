@@ -1,27 +1,23 @@
 package com.pravesh.notification.controller;
 
-<<<<<<< Updated upstream
-=======
 import com.pravesh.notification.dto.request.DisplacementNotifyRequest;
->>>>>>> Stashed changes
+
 import com.pravesh.notification.dto.request.GateEntryNotifyRequest;
 import com.pravesh.notification.dto.request.GuardCredentialsRequest;
 import com.pravesh.notification.dto.request.PassCreatedRequest;
 import com.pravesh.notification.dto.request.PassRevokedRequest;
-<<<<<<< Updated upstream
-=======
+
 import com.pravesh.notification.dto.request.RelocationApprovedRequest;
->>>>>>> Stashed changes
+
 import com.pravesh.notification.dto.request.ResidentApprovedRequest;
 import com.pravesh.notification.dto.request.SocietyAdminApprovedRequest;
 import com.pravesh.notification.dto.request.VisitorEnteredRequest;
 import com.pravesh.notification.dto.response.ApiResponse;
 import com.pravesh.notification.service.NotificationService;
-<<<<<<< Updated upstream
-=======
+
 import com.pravesh.notification.service.SmsService;
 
->>>>>>> Stashed changes
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -34,10 +30,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class InternalNotificationController {
 
 	private final NotificationService notificationService;
-<<<<<<< Updated upstream
-=======
+
 	private final SmsService smsService;
->>>>>>> Stashed changes
+
 
 	@PostMapping("/visitor-entered")
 	public ApiResponse<Void> visitorEntered(@RequestBody VisitorEnteredRequest req) {
@@ -80,8 +75,6 @@ public class InternalNotificationController {
         notificationService.handleGateEntryRequest(req);
         return ApiResponse.ok("Notification dispatched");
     }
-<<<<<<< Updated upstream
-=======
 	
 	@PostMapping("/flat-displacement")
     public ApiResponse<Void> flatDisplacement(@RequestBody DisplacementNotifyRequest req) {
@@ -94,5 +87,5 @@ public class InternalNotificationController {
 		notificationService.handleRelocationApproved(req);
 		return ApiResponse.ok("Notification dispatched");
 	}
->>>>>>> Stashed changes
+
 }

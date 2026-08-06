@@ -12,9 +12,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 
-// Trusts X-User-* headers because they can ONLY be set by the gateway's
-// JwtAuthenticationFilter after it has already validated the JWT — this
-// service is never reachable directly from the browser, only via the gateway.
 public class HeaderAuthenticationFilter extends OncePerRequestFilter {
 
     @Override

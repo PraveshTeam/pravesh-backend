@@ -19,7 +19,8 @@ import java.util.List;
 @RequestMapping("/api/forum")
 @RequiredArgsConstructor
 public class ForumController {
-
+	
+	private final ForumService forumService;
 
     @GetMapping("/posts")
     public ApiResponse<List<PostResponse>> listPosts(

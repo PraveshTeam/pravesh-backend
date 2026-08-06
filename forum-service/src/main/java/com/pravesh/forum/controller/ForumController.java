@@ -49,4 +49,13 @@ public class ForumController {
             @Valid @RequestBody CreateCommentRequest req) {
         return ApiResponse.ok("Comment added", forumService.addComment(id, req, caller.userId(), caller.societyId()));
     }
+    
+    @PutMapping("/posts/{id}/pin")
+    @PreAuthorize("hasRole('SOCIETY_ADMIN')")
+    public ApiResponse<Void> togglePin(
+            @AuthenticationPrincipal AuthenticatedUser caller,
+            @PathVariable Long id) {
+        forumService.togglePin(id, caller.societyId());
+        return ApiResponse.ok("Pin status toggled");
+    }
     }

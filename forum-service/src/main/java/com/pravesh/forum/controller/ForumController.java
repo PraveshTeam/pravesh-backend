@@ -27,4 +27,11 @@ public class ForumController {
             @RequestParam(required = false) String category) {
         return ApiResponse.ok("Posts", forumService.listPosts(category, caller.societyId()));
     }
+    
+    @PostMapping("/posts")
+    public ApiResponse<PostResponse> createPost(
+            @AuthenticationPrincipal AuthenticatedUser caller,
+            @Valid @RequestBody CreatePostRequest req) {
+        return ApiResponse.ok("Post created", forumService.createPost(req, caller.userId(), caller.societyId()));
+    }
     }

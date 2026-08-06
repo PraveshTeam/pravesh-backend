@@ -20,6 +20,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ForumController {
 
+    private final ForumService forumService;
 
     @GetMapping("/posts")
     public ApiResponse<List<PostResponse>> listPosts(
@@ -27,14 +28,14 @@ public class ForumController {
             @RequestParam(required = false) String category) {
         return ApiResponse.ok("Posts", forumService.listPosts(category, caller.societyId()));
     }
-    
+
     @PostMapping("/posts")
     public ApiResponse<PostResponse> createPost(
             @AuthenticationPrincipal AuthenticatedUser caller,
             @Valid @RequestBody CreatePostRequest req) {
         return ApiResponse.ok("Post created", forumService.createPost(req, caller.userId(), caller.societyId()));
     }
-    
+
     @GetMapping("/posts/{id}/comments")
     public ApiResponse<List<CommentResponse>> listComments(
             @AuthenticationPrincipal AuthenticatedUser caller,
@@ -49,7 +50,7 @@ public class ForumController {
             @Valid @RequestBody CreateCommentRequest req) {
         return ApiResponse.ok("Comment added", forumService.addComment(id, req, caller.userId(), caller.societyId()));
     }
-    
+
     @PutMapping("/posts/{id}/pin")
     @PreAuthorize("hasRole('SOCIETY_ADMIN')")
     public ApiResponse<Void> togglePin(
@@ -58,4 +59,13 @@ public class ForumController {
         forumService.togglePin(id, caller.societyId());
         return ApiResponse.ok("Pin status toggled");
     }
+
+    @DeleteMapping("/posts/{id}")
+    @PreAuthorize("hasRole('SOCIETY_ADMIN')")
+    public ApiResponse<Void> deletePost(
+            @AuthenticationPrincipal AuthenticatedUser caller,
+            @PathVariable Long id) {
+        forumService.softDelete(id, caller.societyId());
+        return ApiResponse.ok("Post removed");
     }
+}

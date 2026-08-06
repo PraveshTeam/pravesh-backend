@@ -34,4 +34,19 @@ public class ForumController {
             @Valid @RequestBody CreatePostRequest req) {
         return ApiResponse.ok("Post created", forumService.createPost(req, caller.userId(), caller.societyId()));
     }
+    
+    @GetMapping("/posts/{id}/comments")
+    public ApiResponse<List<CommentResponse>> listComments(
+            @AuthenticationPrincipal AuthenticatedUser caller,
+            @PathVariable Long id) {
+        return ApiResponse.ok("Comments", forumService.listComments(id, caller.societyId()));
+    }
+
+    @PostMapping("/posts/{id}/comments")
+    public ApiResponse<CommentResponse> addComment(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser caller,
+            @Valid @RequestBody CreateCommentRequest req) {
+        return ApiResponse.ok("Comment added", forumService.addComment(id, req, caller.userId(), caller.societyId()));
+    }
     }

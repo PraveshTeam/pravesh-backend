@@ -19,6 +19,12 @@ public class NotificationController {
 
     private final NotificationService notificationService;
 
+    @GetMapping("/api/notifications")
+    public ApiResponse<List<NotificationResponse>> myNotifications(
+            @AuthenticationPrincipal AuthenticatedUser caller) {
+        return ApiResponse.ok("Notifications",
+                notificationService.getMyNotifications(caller.userId()));
+    }
 
     @PostMapping("/api/notifications/mark-read")
     public ApiResponse<Void> markRead(

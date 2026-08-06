@@ -16,9 +16,6 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Razorpay calls the webhook directly — it carries no JWT and no
-                // X-User-* headers, it's authenticated purely by its HMAC signature,
-                // which PaymentController/WebhookController verifies itself.
                 .requestMatchers("/api/payments/webhook").permitAll()
                 .anyRequest().authenticated()
             )

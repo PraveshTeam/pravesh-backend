@@ -1,14 +1,18 @@
 package com.pravesh.notification.controller;
 
+import com.pravesh.notification.dto.request.DisplacementNotifyRequest;
 import com.pravesh.notification.dto.request.GateEntryNotifyRequest;
 import com.pravesh.notification.dto.request.GuardCredentialsRequest;
 import com.pravesh.notification.dto.request.PassCreatedRequest;
 import com.pravesh.notification.dto.request.PassRevokedRequest;
+import com.pravesh.notification.dto.request.RelocationApprovedRequest;
 import com.pravesh.notification.dto.request.ResidentApprovedRequest;
 import com.pravesh.notification.dto.request.SocietyAdminApprovedRequest;
 import com.pravesh.notification.dto.request.VisitorEnteredRequest;
 import com.pravesh.notification.dto.response.ApiResponse;
 import com.pravesh.notification.service.NotificationService;
+import com.pravesh.notification.service.SmsService;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class InternalNotificationController {
 
 	private final NotificationService notificationService;
+	private final SmsService smsService;
 
 	@PostMapping("/visitor-entered")
 	public ApiResponse<Void> visitorEntered(@RequestBody VisitorEnteredRequest req) {
@@ -63,4 +68,16 @@ public class InternalNotificationController {
         notificationService.handleGateEntryRequest(req);
         return ApiResponse.ok("Notification dispatched");
     }
+	
+	@PostMapping("/flat-displacement")
+    public ApiResponse<Void> flatDisplacement(@RequestBody DisplacementNotifyRequest req) {
+		smsService.handleFlatDisplacement(req);
+        return ApiResponse.ok("Notification dispatched");
+    }
+	
+	@PostMapping("/relocation-approved")
+	public ApiResponse<Void> relocationApproved(@RequestBody RelocationApprovedRequest req) {
+		notificationService.handleRelocationApproved(req);
+		return ApiResponse.ok("Notification dispatched");
+	}
 }

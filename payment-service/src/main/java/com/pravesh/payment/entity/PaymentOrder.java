@@ -19,6 +19,9 @@ public class PaymentOrder {
     @Column(name = "resident_id", nullable = false)
     private Long residentId;
 
+    @Column(name = "society_id", nullable = false)
+    private Long societyId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private PaymentPurpose purpose;

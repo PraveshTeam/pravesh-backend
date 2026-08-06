@@ -5,6 +5,7 @@ import com.pravesh.notification.dto.request.GateEntryNotifyRequest;
 import com.pravesh.notification.dto.request.GuardCredentialsRequest;
 import com.pravesh.notification.dto.request.PassCreatedRequest;
 import com.pravesh.notification.dto.request.PassRevokedRequest;
+import com.pravesh.notification.dto.request.RelocationApprovedRequest;
 import com.pravesh.notification.dto.request.ResidentApprovedRequest;
 import com.pravesh.notification.dto.request.SocietyAdminApprovedRequest;
 import com.pravesh.notification.dto.request.VisitorEnteredRequest;
@@ -177,6 +178,18 @@ public class NotificationService {
 					n.setRead(true);
 					notificationRepository.save(n);
 				});
+	}
+	
+	public void handleRelocationApproved(RelocationApprovedRequest req) {
+		UserContactResponse contact = fetchContact(req.residentId());
+		if (contact != null) {
+			safeSendHtmlEmail(contact.email(), "Your Relocation Was Approved ✅",
+					EmailTemplates.relocationApproved(contact.name(),
+							req.oldFlatNumber(), req.oldSocietyName(),
+							req.newFlatNumber(), req.newTower(), req.newSocietyName(), appLink));
+		}
+		save(req.residentId(), "RELOCATION_APPROVED", List.of("EMAIL"), "Relocation Approved",
+				"You've been moved to flat " + req.newFlatNumber() + " in " + req.newSocietyName() + ".");
 	}
 
 	public void markAllRead(Long userId) {

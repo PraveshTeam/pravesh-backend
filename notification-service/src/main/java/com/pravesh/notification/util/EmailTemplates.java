@@ -79,4 +79,57 @@ public class EmailTemplates {
 				.formatted(adminName, societyName, appLink);
 		return wrapper("Welcome to Pravesh 🎉", body);
 	}
+
+	public static String relocationApproved(String residentName, String oldFlatNumber, String oldSocietyName,
+			String newFlatNumber, String newTower, String newSocietyName, String appLink) {
+		String towerPart = (newTower != null && !newTower.isBlank()) ? " (Tower " + newTower + ")" : "";
+		return """
+				<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:560px;margin:0 auto;
+				border:1px solid #e4eaf1;border-radius:14px;overflow:hidden;">
+				<div style="background:linear-gradient(135deg,#1a3c5e,#102841);padding:28px 24px;text-align:center;">
+				<h2 style="color:#ffffff;margin:0;font-size:20px;">Relocation Approved</h2>
+				</div>
+				<div style="padding:28px 24px;color:#1f2b3a;">
+				<p style="font-size:15px;line-height:1.7;margin:0 0 18px;">
+				Hi <strong>%s</strong>,
+				</p>
+				<p style="font-size:15px;line-height:1.7;margin:0 0 22px;">
+				Your request to change flat has been <strong style="color:#16a34a;">approved</strong>.
+				Your Pravesh account is now linked to your new residence.
+				</p>
+
+				<div style="background:#f5f7fa;border-radius:10px;padding:16px 18px;margin-bottom:22px;">
+				<table style="width:100%%;font-size:14px;border-collapse:collapse;">
+				<tr>
+				<td style="color:#5c6b7a;padding:6px 0;">Previous</td>
+				<td style="text-align:right;padding:6px 0;">%s · %s</td>
+				</tr>
+				<tr>
+				<td style="color:#5c6b7a;padding:6px 0;border-top:1px dashed #e4eaf1;">New</td>
+				<td style="text-align:right;padding:6px 0;border-top:1px dashed #e4eaf1;">
+				<strong>%s%s · %s</strong>
+				</td>
+				</tr>
+				</table>
+				</div>
+
+				<p style="font-size:14px;line-height:1.7;color:#5c6b7a;margin:0 0 24px;">
+				Any visitor passes and entry records from your previous flat remain unchanged in your
+				history — they stay correctly associated with where they actually happened. All new
+				passes you create will be for your new flat.
+				</p>
+
+				<div style="text-align:center;">
+				<a href="%s" style="display:inline-block;background:linear-gradient(135deg,#e8871a,#f5a83f);
+				color:#ffffff;text-decoration:none;padding:13px 30px;border-radius:10px;
+				font-weight:700;font-size:14px;">Open Pravesh</a>
+				</div>
+				</div>
+				<div style="background:#f5f7fa;padding:16px;text-align:center;font-size:12px;color:#5c6b7a;">
+				Pravesh — Visitor Access Control
+				</div>
+				</div>
+				""".formatted(residentName, oldFlatNumber, oldSocietyName, newFlatNumber, towerPart, newSocietyName,
+				appLink);
+	}
 }

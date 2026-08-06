@@ -16,5 +16,5 @@ public interface PaymentOrderRepository extends JpaRepository<PaymentOrder, Long
 
     List<PaymentOrder> findByPurposeAndStatusOrderByCreatedAtDesc(PaymentPurpose purpose, PaymentStatus status);
 
-    List<PaymentOrder> findAllByOrderByCreatedAtDesc();
+    List<PaymentOrder> findBySocietyIdOrderByCreatedAtDesc(Long societyId);
 }

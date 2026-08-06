@@ -32,8 +32,6 @@ public class OutboxPoller {
                 event.setProcessed(true);
                 outboxRepository.save(event);
             } catch (Exception e) {
-                // Leave unprocessed — picked up again on the next poll (every 3s).
-                // Even if RabbitMQ is briefly down, the receipt event isn't lost.
                 log.warn("Failed to publish outbox event {}: {}", event.getId(), e.getMessage());
             }
         }

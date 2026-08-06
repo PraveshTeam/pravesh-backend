@@ -6,9 +6,11 @@ import com.pravesh.payment.entity.PaymentStatus;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-// Returned for GET history / admin listing endpoints.
 public record PaymentOrderResponse(
         Long id,
+        Long residentId,
+        String residentName,
+        String flatNumber,
         PaymentPurpose purpose,
         Long referenceId,
         BigDecimal amount,

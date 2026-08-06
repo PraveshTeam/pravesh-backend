@@ -10,7 +10,8 @@ import com.pravesh.payment.entity.PaymentPurpose;
 import com.pravesh.payment.entity.PaymentStatus;
 import com.pravesh.payment.exception.InvalidStateException;
 import com.pravesh.payment.exception.ResourceNotFoundException;
-import com.pravesh.payment.exception.WebhookVerificationException;
+import com.pravesh.payment.feign.ResidentContextResponse;
+import com.pravesh.payment.feign.UserServiceFeignClient;
 import com.pravesh.payment.repository.OutboxEventRepository;
 import com.pravesh.payment.repository.PaymentOrderRepository;
 import com.razorpay.RazorpayException;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,8 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,10 +40,18 @@ public class PaymentService {
     private final PaymentOrderRepository orderRepository;
     private final OutboxEventRepository outboxRepository;
     private final RazorpayGatewayService razorpayGatewayService;
+    private final UserServiceFeignClient userServiceFeignClient;
     private final ObjectMapper mapper = new ObjectMapper();
 
+    @Value("${pravesh.internal.api-key}")
+    private String internalApiKey;
+
     @Transactional
-    public CheckoutConfigResponse createOrder(CreatePaymentOrderRequest req, Long residentId) {
+    public CheckoutConfigResponse createOrder(CreatePaymentOrderRequest req, Long residentId, Long societyId) {
+        if (societyId == null) {
+            throw new InvalidStateException("Could not determine your society. Please log in again.");
+        }
+
         PaymentPurpose purpose;
         try {
             purpose = PaymentPurpose.valueOf(req.purpose().toUpperCase());
@@ -51,11 +63,6 @@ public class PaymentService {
             throw new InvalidStateException("referenceId is required for " + purpose + " payments");
         }
 
-        // Call Razorpay FIRST -- its order id doesn't depend on our own DB id,
-        // just a client-side reference string. This lets us save our entity
-        // exactly once, fully populated, instead of an insert-then-update
-        // (which would otherwise hit razorpay_order_id's NOT NULL constraint
-        // on the first save, before we even know the value).
         String receiptRef = "pravesh-" + residentId + "-" + System.currentTimeMillis();
         String razorpayOrderId;
         try {
@@ -67,6 +74,7 @@ public class PaymentService {
 
         PaymentOrder order = PaymentOrder.builder()
                 .residentId(residentId)
+                .societyId(societyId)
                 .purpose(purpose)
                 .referenceId(req.referenceId())
                 .amount(req.amount())
@@ -87,26 +95,38 @@ public class PaymentService {
 
     public List<PaymentOrderResponse> myHistory(Long residentId) {
         return orderRepository.findByResidentIdOrderByCreatedAtDesc(residentId)
-                .stream().map(this::toResponse).toList();
+                .stream().map(o -> toResponse(o, null)).toList();
     }
 
-    public List<PaymentOrderResponse> allPayments(String purpose, String status) {
-        List<PaymentOrder> orders = orderRepository.findAllByOrderByCreatedAtDesc();
-        return orders.stream()
+    public List<PaymentOrderResponse> allPayments(String purpose, String status, Long adminSocietyId) {
+        List<PaymentOrder> orders = orderRepository.findBySocietyIdOrderByCreatedAtDesc(adminSocietyId).stream()
                 .filter(o -> purpose == null || o.getPurpose().name().equalsIgnoreCase(purpose))
                 .filter(o -> status == null || o.getStatus().name().equalsIgnoreCase(status))
-                .map(this::toResponse)
+                .toList();
+
+        Set<Long> distinctResidentIds = orders.stream()
+                .map(PaymentOrder::getResidentId)
+                .collect(Collectors.toSet());
+
+        Map<Long, ResidentContextResponse> residentContextById = new HashMap<>();
+        for (Long residentId : distinctResidentIds) {
+            try {
+                ResidentContextResponse ctx = userServiceFeignClient
+                        .getResidentContext(residentId, internalApiKey);
+                if (ctx != null) {
+                    residentContextById.put(residentId, ctx);
+                }
+            } catch (Exception e) {
+                log.warn("Could not resolve resident context for {} while building admin payment list: {}",
+                        residentId, e.getMessage(), e);
+            }
+        }
+
+        return orders.stream()
+                .map(o -> toResponse(o, residentContextById.get(o.getResidentId())))
                 .toList();
     }
 
-    /**
-     * Handles the Razorpay webhook. The signature MUST be verified before this
-     * method is even called (see PaymentController) — by the time we're here,
-     * the payload is trusted to have genuinely come from Razorpay.
-     *
-     * Idempotent: replays of the same webhook (Razorpay retries on slow/failed
-     * responses) must never double-process or re-publish a second receipt event.
-     */
     @Transactional
     public void handlePaymentCaptured(String rawBody) {
         JSONObject payload = new JSONObject(rawBody);
@@ -121,9 +141,6 @@ public class PaymentService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No internal order found for Razorpay order " + razorpayOrderId));
 
-        // Idempotency guard — Razorpay can and does retry webhook delivery.
-        // If we've already marked this PAID, this is a safe no-op, not a
-        // second SMS/email or a double-processed receipt.
         if (order.isWebhookVerified() && order.getStatus() == PaymentStatus.PAID) {
             log.info("Webhook for order {} already processed — skipping (idempotent no-op)", order.getId());
             return;
@@ -160,9 +177,18 @@ public class PaymentService {
         }
     }
 
-    private PaymentOrderResponse toResponse(PaymentOrder o) {
+    private PaymentOrderResponse toResponse(PaymentOrder o, ResidentContextResponse ctx) {
         return new PaymentOrderResponse(
-                o.getId(), o.getPurpose(), o.getReferenceId(), o.getAmount(),
-                o.getRazorpayOrderId(), o.getStatus(), o.getCreatedAt(), o.getPaidAt());
+                o.getId(),
+                o.getResidentId(),
+                ctx != null ? ctx.name() : null,
+                ctx != null ? ctx.flatNumber() : null,
+                o.getPurpose(),
+                o.getReferenceId(),
+                o.getAmount(),
+                o.getRazorpayOrderId(),
+                o.getStatus(),
+                o.getCreatedAt(),
+                o.getPaidAt());
     }
 }

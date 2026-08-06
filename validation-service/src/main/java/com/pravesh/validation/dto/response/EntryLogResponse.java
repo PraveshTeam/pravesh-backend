@@ -6,6 +6,10 @@ public record EntryLogResponse(
         Long id,
         String visitorName,
         Long residentId,
+<<<<<<< Updated upstream
+=======
+        String entryType,
+>>>>>>> Stashed changes
         String scanResult,
         String denyReason,
         LocalDateTime scannedAt

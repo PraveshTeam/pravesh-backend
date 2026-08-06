@@ -47,10 +47,17 @@ public class TripService {
 
     // ---------- Browse / Propose ----------
 
+<<<<<<< Updated upstream
     public List<TripResponse> listTrips(Long societyId) {
         List<Trip> trips = tripRepository.findBySocietyIdOrderByCreatedAtDesc(societyId);
         Map<Long, String> names = resolveNames(trips.stream().map(Trip::getCreatorId).collect(Collectors.toSet()));
         return trips.stream().map(t -> toTripResponse(t, names)).toList();
+=======
+    public List<TripResponse> listTrips(Long societyId, Long callerId) {
+        List<Trip> trips = tripRepository.findBySocietyIdOrderByCreatedAtDesc(societyId);
+        Map<Long, String> names = resolveNames(trips.stream().map(Trip::getCreatorId).collect(Collectors.toSet()));
+        return trips.stream().map(t -> toTripResponse(t, names, callerId)).toList();
+>>>>>>> Stashed changes
     }
 
     @Transactional
@@ -68,7 +75,11 @@ public class TripService {
         trip = tripRepository.save(trip);
 
         Map<Long, String> names = resolveNames(Set.of(creatorId));
+<<<<<<< Updated upstream
         return toTripResponse(trip, names);
+=======
+        return toTripResponse(trip, names, creatorId);
+>>>>>>> Stashed changes
     }
 
     // ---------- Join requests ----------
@@ -245,12 +256,26 @@ public class TripService {
         return names;
     }
 
+<<<<<<< Updated upstream
     private TripResponse toTripResponse(Trip t, Map<Long, String> names) {
         long acceptedCount = joinRequestRepository.countByTripIdAndStatus(t.getId(), JoinRequestStatus.ACCEPTED);
         return new TripResponse(
                 t.getId(), t.getCreatorId(), names.get(t.getCreatorId()),
                 t.getTitle(), t.getDescription(), t.getCapacity(), (int) acceptedCount,
                 t.getStatus(), t.getCreatedAt());
+=======
+    private TripResponse toTripResponse(Trip t, Map<Long, String> names, Long callerId) {
+        long acceptedCount = joinRequestRepository.countByTripIdAndStatus(t.getId(), JoinRequestStatus.ACCEPTED);
+        String myRequestStatus = t.getCreatorId().equals(callerId)
+                ? null
+                : joinRequestRepository.findByTripIdAndRequesterId(t.getId(), callerId)
+                        .map(jr -> jr.getStatus().name())
+                        .orElse(null);
+        return new TripResponse(
+                t.getId(), t.getCreatorId(), names.get(t.getCreatorId()),
+                t.getTitle(), t.getDescription(), t.getCapacity(), (int) acceptedCount,
+                t.getStatus(), t.getCreatedAt(), myRequestStatus);
+>>>>>>> Stashed changes
     }
 
     private JoinRequestResponse toJoinRequestResponse(TripJoinRequest jr, Map<Long, String> names) {
@@ -264,4 +289,8 @@ public class TripService {
                 c.getId(), c.getAuthorId(), names.get(c.getAuthorId()),
                 c.getBody(), c.getCreatedAt());
     }
+<<<<<<< Updated upstream
 }
+=======
+}
+>>>>>>> Stashed changes

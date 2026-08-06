@@ -1,5 +1,9 @@
 package com.pravesh.validation.entity;
 
+<<<<<<< Updated upstream
+=======
+import com.pravesh.validation.entity.enums.EntryType;
+>>>>>>> Stashed changes
 import com.pravesh.validation.entity.enums.ScanResult;
 import jakarta.persistence.*;
 import lombok.*;
@@ -19,6 +23,14 @@ public class EntryLog {
     @Column(name = "pass_id")
     private Long passId;
 
+<<<<<<< Updated upstream
+=======
+    @Enumerated(EnumType.STRING)
+    @Column(name = "entry_type", nullable = false, length = 10)
+    @Builder.Default
+    private EntryType entryType = EntryType.QR_PASS;
+
+>>>>>>> Stashed changes
     @Column(name = "resident_id")
     private Long residentId;
 

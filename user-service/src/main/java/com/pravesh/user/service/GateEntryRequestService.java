@@ -29,6 +29,7 @@ public class GateEntryRequestService {
     private final GuardRepository guardRepository;
     private final UserRepository userRepository;
     private final NotificationFeignClient notificationFeignClient;
+    private final com.pravesh.user.feign.ValidationFeignClient validationFeignClient;
 
     @Transactional
     public GateEntryRequestResponse createRequest(CreateGateEntryRequest req, Long guardUserId, Long societyId) {
@@ -105,6 +106,15 @@ public class GateEntryRequestService {
         entry.setRespondedAt(LocalDateTime.now());
         gateEntryRequestRepository.save(entry);
 
+        try {
+            validationFeignClient.logWalkInEntry(new com.pravesh.user.feign.WalkInEntryLogRequest(
+                    entry.getResidentId(), entry.getVisitorName(), entry.getGuardUserId(), entry.getGateId(),
+                    entry.getSocietyId(), approve ? "GRANTED" : "DENIED",
+                    approve ? null : "RESIDENT_DENIED"));
+        } catch (Exception e) {
+            log.warn("Failed to log walk-in entry for gate entry request {}: {}", entry.getId(), e.getMessage());
+        }
+
         return toResponse(entry);
     }
 
@@ -119,6 +129,16 @@ public class GateEntryRequestService {
         }
         if (!stale.isEmpty()) {
             gateEntryRequestRepository.saveAll(stale);
+            for (GateEntryRequest entry : stale) {
+                try {
+                    validationFeignClient.logWalkInEntry(new com.pravesh.user.feign.WalkInEntryLogRequest(
+                            entry.getResidentId(), entry.getVisitorName(), entry.getGuardUserId(),
+                            entry.getGateId(), entry.getSocietyId(), "NO_RESPONSE", "RESIDENT_NO_RESPONSE"));
+                } catch (Exception e) {
+                    log.warn("Failed to log expired walk-in entry for gate entry request {}: {}",
+                            entry.getId(), e.getMessage());
+                }
+            }
         }
     }
 

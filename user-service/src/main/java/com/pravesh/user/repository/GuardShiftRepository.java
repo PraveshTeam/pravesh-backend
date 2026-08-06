@@ -9,4 +9,6 @@ import java.util.Optional;
 public interface GuardShiftRepository extends JpaRepository<GuardShift, Long> {
     Optional<GuardShift> findTopByGuardUserIdAndShiftEndIsNullOrderByShiftStartDesc(Long guardUserId);
     List<GuardShift> findByGuardUserIdOrderByShiftStartDesc(Long guardUserId);
+    
+    Optional<GuardShift> findTopByGateIdAndShiftEndIsNullOrderByShiftStartDesc(Long gateId);
 }

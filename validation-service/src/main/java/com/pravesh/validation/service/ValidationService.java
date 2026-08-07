@@ -1,6 +1,7 @@
 package com.pravesh.validation.service;
 
 import com.pravesh.validation.entity.EntryLog;
+import com.pravesh.validation.entity.enums.EntryType;
 import com.pravesh.validation.entity.enums.ScanResult;
 import com.pravesh.validation.exception.ShiftRequiredException;
 import com.pravesh.validation.feign.*;
@@ -78,5 +79,19 @@ public class ValidationService {
 
     public List<EntryLog> getAllEntriesInSociety(Long societyId) {
         return entryLogRepository.findBySocietyId(societyId);
+    }
+
+    public void logWalkInEntry(com.pravesh.validation.dto.request.WalkInEntryLogRequest req) {
+        EntryLog entryLog = EntryLog.builder()
+                .entryType(EntryType.WALK_IN)
+                .residentId(req.residentId())
+                .visitorName(req.visitorName())
+                .guardId(req.guardId())
+                .gateId(req.gateId())
+                .societyId(req.societyId())
+                .scanResult(ScanResult.valueOf(req.outcome()))
+                .denyReason(req.denyReason())
+                .build();
+        entryLogRepository.save(entryLog);
     }
 }

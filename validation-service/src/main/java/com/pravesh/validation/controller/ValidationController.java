@@ -1,6 +1,7 @@
 package com.pravesh.validation.controller;
 
 import com.pravesh.validation.dto.request.ScanRequest;
+import com.pravesh.validation.dto.request.WalkInEntryLogRequest;
 import com.pravesh.validation.dto.response.ApiResponse;
 import com.pravesh.validation.dto.response.EntryLogResponse;
 import com.pravesh.validation.dto.response.ScanResultResponse;
@@ -36,6 +37,12 @@ public class ValidationController {
                         result.visitorName(), result.passType()));
     }
 
+    @PostMapping("/api/internal/entries/walk-in")
+    public ApiResponse<Void> logWalkInEntry(@RequestBody WalkInEntryLogRequest req) {
+        validationService.logWalkInEntry(req);
+        return ApiResponse.ok("Walk-in entry logged");
+    }
+
     @GetMapping("/api/entries")
     @PreAuthorize("hasRole('GUARD')")
     public ApiResponse<List<EntryLogResponse>> myGateEntries(
@@ -46,7 +53,7 @@ public class ValidationController {
         LocalDate d = date != null ? LocalDate.parse(date) : LocalDate.now();
         var entries = validationService.getEntriesByGate(gateId, d, caller.societyId()).stream()
                 .map(e -> new EntryLogResponse(e.getId(), e.getVisitorName(), e.getResidentId(),
-                        e.getScanResult().name(), e.getDenyReason(), e.getScannedAt()))
+                        e.getEntryType().name(), e.getScanResult().name(), e.getDenyReason(), e.getScannedAt()))
                 .toList();
 
         return ApiResponse.ok("Entry log", entries);
@@ -60,7 +67,7 @@ public class ValidationController {
 
         var entries = validationService.getEntriesByFlat(caller.userId(), caller.societyId()).stream()
                 .map(e -> new EntryLogResponse(e.getId(), e.getVisitorName(), e.getResidentId(),
-                        e.getScanResult().name(), e.getDenyReason(), e.getScannedAt()))
+                        e.getEntryType().name(), e.getScanResult().name(), e.getDenyReason(), e.getScannedAt()))
                 .toList();
 
         return ApiResponse.ok("Flat entry log", entries);
@@ -72,7 +79,7 @@ public class ValidationController {
             @AuthenticationPrincipal AuthenticatedUser caller) {
         var entries = validationService.getAllEntriesInSociety(caller.societyId()).stream()
                 .map(e -> new EntryLogResponse(e.getId(), e.getVisitorName(), e.getResidentId(),
-                        e.getScanResult().name(), e.getDenyReason(), e.getScannedAt()))
+                        e.getEntryType().name(), e.getScanResult().name(), e.getDenyReason(), e.getScannedAt()))
                 .toList();
         return ApiResponse.ok("All entries in society", entries);
     }

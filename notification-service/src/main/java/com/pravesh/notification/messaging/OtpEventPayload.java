@@ -6,5 +6,10 @@ public record OtpEventPayload(
         String email,
         String phone,
         String otp,
+<<<<<<< Updated upstream
         String channel
+=======
+        String channel,
+        String purpose // "PASSWORD_RESET" or "REGISTRATION_VERIFICATION" 
+>>>>>>> Stashed changes
 ) {}

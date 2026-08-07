@@ -132,4 +132,35 @@ public class EmailTemplates {
 				""".formatted(residentName, oldFlatNumber, oldSocietyName, newFlatNumber, towerPart, newSocietyName,
 				appLink);
 	}
+<<<<<<< Updated upstream
+=======
+
+	private static String otpCode(String heading, String introHtml, String otp, int expiryMinutes) {
+		String body = """
+				%s
+				<div style="text-align:center; margin: 28px 0;">
+				    <span style="display:inline-block; background:#f5f7fa; border:1px dashed #c7d2dd;
+				        border-radius:10px; padding:16px 32px; font-size:32px; font-weight:700;
+				        letter-spacing:8px; color:#2c3e50;">%s</span>
+				</div>
+				<p style="color:#5c6b7a; font-size:13px; text-align:center; margin:0;">
+				    This code expires in %d minutes. Never share it with anyone.
+				</p>
+				"""
+				.formatted(introHtml, otp, expiryMinutes);
+		return wrapper(heading, body);
+	}
+
+	public static String otpPasswordReset(String otp, int expiryMinutes) {
+		String intro = "<p>We received a request to reset your Pravesh account password. "
+				+ "Use the code below to continue:</p>";
+		return otpCode("Reset Your Password", intro, otp, expiryMinutes);
+	}
+
+	public static String otpRegistrationVerification(String otp, int expiryMinutes) {
+		String intro = "<p>Use the code below to verify this email or phone number and finish "
+				+ "creating your Pravesh account:</p>";
+		return otpCode("Verify Your Details", intro, otp, expiryMinutes);
+	}
+>>>>>>> Stashed changes
 }

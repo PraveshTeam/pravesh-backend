@@ -12,5 +12,11 @@ public record TripResponse(
         int capacity,
         int acceptedCount,
         TripStatus status,
+<<<<<<< Updated upstream
         LocalDateTime createdAt
 ) {}
+=======
+        LocalDateTime createdAt,
+        String myRequestStatus 
+) {}
+>>>>>>> Stashed changes

@@ -25,7 +25,11 @@ public class TripController {
 
     @GetMapping
     public ApiResponse<List<TripResponse>> listTrips(@AuthenticationPrincipal AuthenticatedUser caller) {
+<<<<<<< Updated upstream
         return ApiResponse.ok("Trips", tripService.listTrips(caller.societyId()));
+=======
+        return ApiResponse.ok("Trips", tripService.listTrips(caller.societyId(), caller.userId()));
+>>>>>>> Stashed changes
     }
 
     @PostMapping
@@ -80,4 +84,8 @@ public class TripController {
             @Valid @RequestBody AddCommentRequest req) {
         return ApiResponse.ok("Comment added", tripService.addComment(id, req, caller.userId(), caller.societyId()));
     }
+<<<<<<< Updated upstream
 }
+=======
+}
+>>>>>>> Stashed changes
